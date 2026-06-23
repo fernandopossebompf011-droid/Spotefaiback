@@ -27,7 +27,7 @@ const getMusicas = async (request, response) => {
     }
 };
 
-const addMusica = async (request, response) => {
+const addMusicas = async (request, response) => {
     try {
         const { titulo, artista, album, duracao, youtube } = request.body;
 
@@ -51,7 +51,7 @@ const addMusica = async (request, response) => {
     }
 };
 
-const updateMusica = async (request, response) => {
+const updateMusicas = async (request, response) => {
     try {
         const { codigo, titulo, artista, album, duracao, youtube } = request.body;
 
@@ -87,7 +87,7 @@ const updateMusica = async (request, response) => {
     }
 };
 
-const deleteMusica = async (request, response) => {
+const deleteMusicas = async (request, response) => {
     const codigo = request.params.codigo;
 
     try {
@@ -116,7 +116,7 @@ const deleteMusica = async (request, response) => {
     }
 };
 
-const getMusicaPorCodigo = async (request, response) => {
+const getMusicasPorCodigo = async (request, response) => {
     const codigo = request.params.codigo;
 
     try {
@@ -144,10 +144,10 @@ const getMusicaPorCodigo = async (request, response) => {
 };
 
 app.get('/musicas', getMusicas);
-app.get('/musicas/:codigo', getMusicaPorCodigo);
-app.post('/musicas', addMusica);
-app.put('/musicas', updateMusica);
-app.delete('/musicas/:codigo', deleteMusica);
+app.get('/musicas/:codigo', getMusicasPorCodigo);
+app.post('/musicas', addMusicas);
+app.put('/musicas', updateMusicas);
+app.delete('/musicas/:codigo', deleteMusicas);
 
 
 app.listen(process.env.PORT || 3002, () => {
