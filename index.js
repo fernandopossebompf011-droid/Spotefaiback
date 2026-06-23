@@ -9,105 +9,145 @@ app.use(express.json());
 app.use(express.urlencoded({extended:false}));
 app.use(cors());
 
-const getProdutos = async (request, response) => {
-    try {    
-        const { rows } = await pool.query(`SELECT codigo, nome, descricao, quantidade_estoque, 
-            valor, to_char(data_cadastro,'YYYY-MM-DD') AS data_cadastro FROM produtos ORDER BY codigo`);
-        return response.status(200).json(rows);        
+const getMusicas = async (request, response) => {
+    try {
+        const { rows } = await pool.query(`
+            SELECT codigo, titulo, artista, album, duracao, youtube
+            FROM musicas
+            ORDER BY codigo
+        `);
+
+        return response.status(200).json(rows);
+
     } catch (err) {
-        return response.status(400).json({
+        return response.status(500).json({
             status: 'error',
-            message: 'Erro ao consultar os produtos: ' + err
-        })
-    }
-}
-
-const addProduto = async (request, response) => {
-    try {
-        const { nome, descricao, quantidade_estoque, valor, data_cadastro } = request.body;
-        const results = await pool.query(`INSERT INTO produtos (nome, descricao, quantidade_estoque, 
-            valor, data_cadastro) VALUES ($1, $2, $3, $4, $5) 
-            RETURNING codigo,nome, descricao, quantidade_estoque, valor,
-             to_char(data_cadastro,'YYYY-MM-DD') as data_cadastro`,
-            [nome, descricao, quantidade_estoque, valor, data_cadastro]);
-        const linhainserida = results.rows[0];
-        return response.status(200).json({
-            status: "success", message: "Produto criado",
-            objeto: linhainserida
+            message: 'Erro ao consultar as músicas: ' + err.message
         });
-    } catch (err) {
-        return response.status(400).json({ status: 'error', message: err });
     }
-}
+};
 
-const updateProduto = async (request, response) => {
+const addMusica = async (request, response) => {
     try {
-        const { codigo, nome, descricao, quantidade_estoque, valor, data_cadastro } = request.body;
-        const results = await pool.query(`UPDATE produtos SET nome=$2, descricao=$3, 
-            quantidade_estoque=$4, valor=$5, data_cadastro=$6
-            WHERE codigo=$1 
-            RETURNING codigo,nome, descricao, quantidade_estoque, valor, 
-            to_char(data_cadastro,'YYYY-MM-DD') as data_cadastro`,
-            [codigo, nome, descricao, quantidade_estoque, valor, data_cadastro]);
-        const linhaalterada = results.rows[0];
-        return response.status(200).json({
-            status: "success", message: "Produto alterado",
-            objeto: linhaalterada
+        const { titulo, artista, album, duracao, youtube } = request.body;
+
+        const { rows } = await pool.query(`
+            INSERT INTO musicas (titulo, artista, album, duracao, youtube)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING codigo, titulo, artista, album, duracao, youtube
+        `, [titulo, artista, album, duracao, youtube]);
+
+        return response.status(201).json({
+            status: 'success',
+            message: 'Música criada com sucesso',
+            objeto: rows[0]
         });
-    } catch (err) {
-        return response.status(400).json({ status: 'error', message: err });
-    }
-}
 
-const deleteProduto = async (request, response) => {
-    const codigo = request.params.codigo;
+    } catch (err) {
+        return response.status(500).json({
+            status: 'error',
+            message: err.message
+        });
+    }
+};
+
+const updateMusica = async (request, response) => {
     try {
-        const results = await pool.query(`DELETE FROM produtos WHERE codigo = $1`, [codigo]);
-        if (results.rowCount == 0) {
-            return response.status(400).json({
+        const { codigo, titulo, artista, album, duracao, youtube } = request.body;
+
+        const { rows, rowCount } = await pool.query(`
+            UPDATE musicas
+            SET titulo = $2,
+                artista = $3,
+                album = $4,
+                duracao = $5,
+                youtube = $6
+            WHERE codigo = $1
+            RETURNING codigo, titulo, artista, album, duracao, youtube
+        `, [codigo, titulo, artista, album, duracao, youtube]);
+
+        if (rowCount === 0) {
+            return response.status(404).json({
                 status: 'error',
-                message: `Nenhum registro encontrado com o código ${codigo} para ser removido`
-            });
-        } else {
-            return response.status(200).json({
-                status: "success", message: "Produto removido com sucesso"
+                message: 'Música não encontrada'
             });
         }
-    } catch (err) {
-        return response.status(400).json({ status: 'error', message: err });
-    }
-}
 
-const getProdutoPorCodigo = async (request, response) => {
+        return response.status(200).json({
+            status: 'success',
+            message: 'Música atualizada com sucesso',
+            objeto: rows[0]
+        });
+
+    } catch (err) {
+        return response.status(500).json({
+            status: 'error',
+            message: err.message
+        });
+    }
+};
+
+const deleteMusica = async (request, response) => {
     const codigo = request.params.codigo;
+
     try {
-        const results = await pool.query(`SELECT codigo, nome, descricao, quantidade_estoque, 
-            valor, to_char(data_cadastro,'YYYY-MM-DD') as data_cadastro 
-            FROM produtos WHERE codigo = $1`, [codigo]);
-        if (results.rowCount == 0) {
-            return response.status(400).json({
+        const results = await pool.query(
+            'DELETE FROM musicas WHERE codigo = $1',
+            [codigo]
+        );
+
+        if (results.rowCount === 0) {
+            return response.status(404).json({
                 status: 'error',
-                message: `Nenhum registro encontrado com o código ${codigo}`
+                message: `Nenhuma música encontrada com o código ${codigo}`
             });
-        } else {
-            const produto = results.rows[0];
-            return response.status(200).json(produto);
         }
+
+        return response.status(200).json({
+            status: 'success',
+            message: 'Música removida com sucesso'
+        });
+
     } catch (err) {
-        return response.status(400).json({ status: 'error', message: err });
+        return response.status(500).json({
+            status: 'error',
+            message: 'Erro ao remover a música: ' + err.message
+        });
     }
-}
+};
 
-//Mapeamento das rotas
+const getMusicaPorCodigo = async (request, response) => {
+    const codigo = request.params.codigo;
 
-app.route('/produtos')
-    .get(getProdutos)
-    .post(addProduto)
-    .put(updateProduto)
+    try {
+        const results = await pool.query(`
+            SELECT codigo, titulo, artista, album, duracao, youtube
+            FROM musicas
+            WHERE codigo = $1
+        `, [codigo]);
 
-app.route('/produtos/:codigo')
-    .get(getProdutoPorCodigo)
-    .delete(deleteProduto)
+        if (results.rowCount === 0) {
+            return response.status(404).json({
+                status: 'error',
+                message: `Nenhuma música encontrada com o código ${codigo}`
+            });
+        }
+
+        return response.status(200).json(results.rows[0]);
+
+    } catch (err) {
+        return response.status(500).json({
+            status: 'error',
+            message: 'Erro ao consultar a música: ' + err.message
+        });
+    }
+};
+
+app.get('/musicas', getMusicas);
+app.get('/musicas/:codigo', getMusicaPorCodigo);
+app.post('/musicas', addMusica);
+app.put('/musicas', updateMusica);
+app.delete('/musicas/:codigo', deleteMusica);
 
 
 app.listen(process.env.PORT || 3002, () => {
