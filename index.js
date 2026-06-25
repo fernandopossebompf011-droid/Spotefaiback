@@ -6,7 +6,7 @@ const { pool } = require('./config');
 const app = express();
 
 app.use(express.json());
-app.use(express.urlencoded({extended:false}));
+app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 
 const getMusicas = async (request, response) => {
@@ -143,12 +143,14 @@ const getMusicasPorCodigo = async (request, response) => {
     }
 };
 
-app.get('/musicas', getMusicas);
-app.get('/musicas/:codigo', getMusicasPorCodigo);
-app.post('/musicas', addMusicas);
-app.put('/musicas', updateMusicas);
-app.delete('/musicas/:codigo', deleteMusicas);
+app.route('/musicas')
+    .get(getMusicas)
+    .post(addMusicas)
+    .put(updateMusicas)
 
+app.route('/musicas/:codigo')
+    .get(getMusicasPorCodigo)
+    .delete(deleteMusicas)
 
 app.listen(process.env.PORT || 3002, () => {
     console.log('Servidor da API rodando....')
